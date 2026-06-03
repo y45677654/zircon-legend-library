@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -226,7 +226,14 @@ namespace MirDB
                 Directory.CreateDirectory(SystemBackupPath);
 
             if (File.Exists(SystemPath))
-                File.Move(SystemPath, SystemBackupPath + "System " + ToBackUpFileName(DateTime.Now.ToLocalTime()) + Extention);
+            {
+                string destFileName = SystemBackupPath + "System " + ToBackUpFileName(DateTime.Now.ToLocalTime()) + Extention;
+                // 【无损防撞优化】如果同名备份文件已存在（例如同一分钟内被保存了多次），先安全删除旧冲突备份，防止 File.Move 抛出 IOException 导致崩溃
+                if (File.Exists(destFileName))
+                    File.Delete(destFileName);
+
+                File.Move(SystemPath, destFileName);
+            }
 
             File.Move(SystemPath + TempExtention, SystemPath);
         }
@@ -234,6 +241,13 @@ namespace MirDB
         public void SaveSystem()
         {
             if ((Mode & SessionMode.System) != SessionMode.System) return;
+
+            // 强制遍历所有系统数据集合执行内存状态预处理，确保 SaveList 被成功创建与填充
+            Parallel.ForEach(Collections, x =>
+            {
+                if (x.Value.IsSystemData)
+                    x.Value.SaveObjects();
+            });
 
             ForceSaveSystem();
         }
@@ -267,7 +281,12 @@ namespace MirDB
                 var now = DateTime.Now;
                 if (now > BackupTime && BackUpSpace < TimeSpan.MaxValue)
                 {
-                    File.Move(UsersPath, UsersBackupPath + "Users " + ToBackUpFileName(now.ToLocalTime()) + Extention);
+                    string destFileName = UsersBackupPath + "Users " + ToBackUpFileName(now.ToLocalTime()) + Extention;
+                    // 【无损防撞优化】如果同名备份文件已存在，先安全删除，防止 File.Move 报错
+                    if (File.Exists(destFileName))
+                        File.Delete(destFileName);
+
+                    File.Move(UsersPath, destFileName);
                     BackupTime = now + BackUpSpace;
                 }
                 else
