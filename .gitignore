@@ -105,3 +105,16 @@ Test/*.csproj
 Installers/MacOS/Scripts/Framework/postinstall
 IDE/MonoDevelop/MonoDevelop.MonoGame/templates/Common/MonoGame.Framework.dll.config
 *.suo
+
+# --------------------------------------------------
+# 自定义排除规则 (编译输出与局部配置)
+# --------------------------------------------------
+[Oo]utput/
+[Bb]uild_All/
+compile/
+
+# 本地私有配置与数据库
+*.ini
+*.db
+*.db-journal
+*.DotSettings.user
